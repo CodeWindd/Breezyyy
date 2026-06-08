@@ -1,0 +1,23 @@
+{
+  "short_name": "Breezy",
+  "name": "Breezy — Elegant Weather Forecast",
+  "icons": [
+    {
+      "src": "/pwa_icon.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa_icon.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#f0f4f8",
+  "theme_color": "#3b82f6",
+  "display": "standalone",
+  "orientation": "portrait"
+}

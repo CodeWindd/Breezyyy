@@ -1,0 +1,10 @@
+{
+  "name": "Breezy",
+  "description": "A beautiful and modern weather application with forecasts, trends, and weather maps.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
