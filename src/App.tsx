@@ -490,11 +490,13 @@ export default function App() {
     weekday: "long",
     day: "numeric",
     month: "long",
+    timeZone: weather?.location?.timezone || undefined,
   });
   const formattedTimeStr = time.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
+    timeZone: weather?.location?.timezone || undefined,
   });
 
   return (
@@ -913,7 +915,7 @@ export default function App() {
                 </div>
 
                 {/* Hourly Trend Chart Scroller (72 Hourly Forecast) */}
-                <HourlyTrendChart hourlyData={weather.hourly} isCelsius={isCelsius} />
+                <HourlyTrendChart hourlyData={weather.hourly} isCelsius={isCelsius} timezone={weather.location.timezone} />
 
               </div>
             </motion.div>

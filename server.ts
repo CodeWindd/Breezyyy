@@ -229,6 +229,12 @@ function mapNwsForecastToMeteocon(shortForecast: string, isDaytime: boolean): st
     : "https://cdn.meteocons.com/3.0.0-next.10/svg/fill/clear-night.svg";
 }
 
+function parseLocalTimeWithOffset(localDateTimeStr: string, offsetSeconds: number): Date {
+  const tempDate = new Date(localDateTimeStr + "Z");
+  const utcMs = tempDate.getTime() - (offsetSeconds * 1000);
+  return new Date(utcMs);
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -376,6 +382,8 @@ async function startServer() {
       // Daily items (exactly 10 days!)
       let dailyUnified: any[] = [];
 
+      const targetTimeZone = openMeteoData?.timezone || "UTC";
+
       if (nwsData) {
         provider = "nws";
         locationName = `${nwsData.city}, ${nwsData.state}`;
@@ -412,7 +420,11 @@ async function startServer() {
           for (let i = 0; i < limit; i++) {
             const h = nwsData.forecastHourly[i];
             const dateObj = new Date(h.startTime);
-            const formattedHour = dateObj.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+            const formattedHour = dateObj.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+              timeZone: targetTimeZone,
+            });
             hourlyUnified.push({
               time: h.startTime,
               hourFormatted: formattedHour,
@@ -428,12 +440,21 @@ async function startServer() {
           const limit = Math.min(openMeteoData.hourly.time.length, 72);
           for (let i = 0; i < limit; i++) {
             const t = openMeteoData.hourly.time[i];
-            const dateObj = new Date(t);
-            const hour = dateObj.getHours();
+            const hourPart = t.split("T")[1] || "12:00";
+            const hour = parseInt(hourPart.split(":")[0], 10) || 12;
             const isDay = hour > 6 && hour < 20;
             const code = openMeteoData.hourly.weather_code[i];
             const mapped = mapWmoToMeteocon(code, isDay);
-            const formattedHour = dateObj.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+            
+            let formattedHour = t;
+            try {
+              const ampm = hour >= 12 ? "PM" : "AM";
+              const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+              formattedHour = `${displayHour}:00 ${ampm}`;
+            } catch (e) {
+              console.error("Error formatting OpenMeteo hour:", e);
+            }
+
             hourlyUnified.push({
               time: t,
               hourFormatted: formattedHour,
@@ -508,11 +529,15 @@ async function startServer() {
         // NWS has around 7 days. To reach exactly 10 days, supplement days 8-10 from OpenMeteo
         if (openMeteoData && openMeteoData.daily) {
           const omDays = openMeteoData.daily;
+          const offset = openMeteoData.utc_offset_seconds || 0;
           for (let i = dailyUnified.length; i < 10; i++) {
             if (omDays.time[i]) {
               const t = omDays.time[i];
-              const dateObj = new Date(omDays.time[i] + "T12:00:00");
-              const dayName = dateObj.toLocaleDateString("en-US", { weekday: "long" });
+              const dateObj = parseLocalTimeWithOffset(omDays.time[i] + "T12:00:00", offset);
+              const dayName = dateObj.toLocaleDateString("en-US", {
+                weekday: "long",
+                timeZone: targetTimeZone,
+              });
               const code = omDays.weather_code[i];
               const mapped = mapWmoToMeteocon(code, true);
               dailyUnified.push({
@@ -554,12 +579,21 @@ async function startServer() {
           const limit = Math.min(openMeteoData.hourly.time.length, 72);
           for (let i = 0; i < limit; i++) {
             const t = openMeteoData.hourly.time[i];
-            const dateObj = new Date(t);
-            const hour = dateObj.getHours();
+            const hourPart = t.split("T")[1] || "12:00";
+            const hour = parseInt(hourPart.split(":")[0], 10) || 12;
             const isDay = hour > 6 && hour < 20;
             const code = openMeteoData.hourly.weather_code[i];
             const mapped = mapWmoToMeteocon(code, isDay);
-            const formattedHour = dateObj.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+            
+            let formattedHour = t;
+            try {
+              const ampm = hour >= 12 ? "PM" : "AM";
+              const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+              formattedHour = `${displayHour}:00 ${ampm}`;
+            } catch (e) {
+              console.error("Error formatting OpenMeteo hour:", e);
+            }
+
             hourlyUnified.push({
               time: t,
               hourFormatted: formattedHour,
@@ -575,10 +609,14 @@ async function startServer() {
         // Daily
         if (openMeteoData.daily) {
           const omDays = openMeteoData.daily;
+          const offset = openMeteoData.utc_offset_seconds || 0;
           for (let i = 0; i < omDays.time.length; i++) {
             const t = omDays.time[i];
-            const dateObj = new Date(t + "T12:00:00");
-            const dayName = dateObj.toLocaleDateString("en-US", { weekday: "long" });
+            const dateObj = parseLocalTimeWithOffset(t + "T12:00:00", offset);
+            const dayName = dateObj.toLocaleDateString("en-US", {
+              weekday: "long",
+              timeZone: targetTimeZone,
+            });
             const code = omDays.weather_code[i];
             const mapped = mapWmoToMeteocon(code, true);
             dailyUnified.push({
@@ -601,6 +639,7 @@ async function startServer() {
           latitude,
           longitude,
           name: locationName,
+          timezone: targetTimeZone,
         },
         current: {
           temperature: currentTemp,

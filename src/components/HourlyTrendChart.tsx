@@ -6,9 +6,10 @@ import { motion } from "motion/react";
 interface HourlyTrendChartProps {
   hourlyData: HourlyForecast[];
   isCelsius: boolean;
+  timezone?: string;
 }
 
-export default function HourlyTrendChart({ hourlyData, isCelsius }: HourlyTrendChartProps) {
+export default function HourlyTrendChart({ hourlyData, isCelsius, timezone }: HourlyTrendChartProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const convertTemp = (f: number) => {
@@ -16,6 +17,17 @@ export default function HourlyTrendChart({ hourlyData, isCelsius }: HourlyTrendC
       return Math.round(((f - 32) * 5) / 9);
     }
     return f;
+  };
+
+  const getWeekday = (timeStr: string) => {
+    try {
+      const datePart = timeStr.split("T")[0];
+      const [year, month, day] = datePart.split("-").map(Number);
+      const d = new Date(year, month - 1, day, 12, 0, 0);
+      return d.toLocaleDateString("en-US", { weekday: "short" });
+    } catch {
+      return "";
+    }
   };
 
   const scroll = (direction: "left" | "right") => {
@@ -102,7 +114,7 @@ export default function HourlyTrendChart({ hourlyData, isCelsius }: HourlyTrendC
                   {item.hourFormatted}
                 </span>
                 <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-1">
-                  {new Date(item.time).toLocaleDateString("en-US", { weekday: "short" })}
+                  {getWeekday(item.time)}
                 </span>
               </div>
 

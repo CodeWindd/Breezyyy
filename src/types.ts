@@ -2,6 +2,7 @@ export interface WeatherLocation {
   latitude: number;
   longitude: number;
   name: string;
+  timezone?: string;
 }
 
 export interface CurrentWeather {
